@@ -341,7 +341,7 @@ class LTPFramework(Framework):
             status = ResultStatus.WARN
         elif retcode == 32:
             status = ResultStatus.CONF
-        else:
+        elif retcode != 0:
             status = ResultStatus.FAIL
 
         if error:
