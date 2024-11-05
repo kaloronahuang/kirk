@@ -15,6 +15,7 @@ import secrets
 import logging
 import asyncio
 import contextlib
+import psutil
 from libkirk.sut import SUT
 from libkirk.sut import IOBuffer
 from libkirk.sut import SUTError
@@ -117,7 +118,7 @@ class QemuSUT(SUT):
                 "readonly=on")
 
         if self._image:
-            params.append(f"-drive if=virtio,cache=unsafe,file={self._image}")
+            params.append(f"-drive cache=unsafe,file={self._image},format=raw")
 
         if self._initrd:
             params.append(f"-initrd {self._initrd}")
@@ -391,6 +392,13 @@ class QemuSUT(SUT):
             # still running -> stop process
             if await self.is_running:
                 self._logger.info("Killing virtual machine")
+
+                sh_proc = psutil.Process(self._proc.pid)
+
+                for p in sh_proc.children():
+                    if 'qemu' in p.name():
+                        p.kill()
+                        break
 
                 self._proc.kill()
 
