@@ -1,6 +1,5 @@
 # kgym-kirk.py
 import os
-import sys
 import json
 import subprocess as sp
 from google.cloud import storage
@@ -36,7 +35,8 @@ class LTPJob:
             os.path.join(self.work_dir, 'image.tar.gz'),
             os.path.join(self.work_dir, 'disk.raw'),
             os.path.join(self.work_dir, 'ltp-deliverable'),
-            os.path.join(self.work_dir, 'mnt')
+            os.path.join(self.work_dir, 'mnt'),
+            os.path.join(self.work_dir, 'report.json')
         ], stdout=self.stdout_fp, stderr=self.stdout_fp).wait()
 
     def pull(self):
@@ -159,21 +159,24 @@ class LTPJob:
         self.pull()
         self.build_ltp()
         self.setup_vm_image()
-        import libkirk.main
+
         report_path = os.path.join(self.work_dir, 'report.json')
-        with redirect_stdout(self.stdout_fp):
-            libkirk.main.run([
-                '--framework', 'ltp',
-                '--sut', f'qemu:image={self.vm_image_path}:user=root:smp=2,sockets=2,cores=1:ram=8G',
-                '--run-suite', 'syscalls',
-                '--json-report', report_path
-            ])
+        kirk_proc = sp.Popen([
+            './kirk',
+            '--framework', 'ltp',
+            '--sut', f'qemu:image={self.vm_image_path}:user=root:smp=2,sockets=2,cores=1:ram=8G',
+            '--run-suite', 'syscalls',
+            '--json-report', report_path
+        ], stdout=self.stdout_fp, stderr=sp.STDOUT)
+        code = kirk_proc.wait()
+        if code != 0:
+            self.clean()
+            raise SystemError(f'kirk exit code: {code}')
+
         with open(report_path) as fp:
             report = json.load(fp)
         self.clean()
         return report
-
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
 def run_ltp(bug_id: str, tag: str, bucket_name: str, kgym_storage_prefix: str, work_dir_root: str) -> dict:
     work_dir = os.path.join(work_dir_root, bug_id, tag)
@@ -229,7 +232,7 @@ if __name__ == '__main__':
     parser.add_argument('filename')
     parser.add_argument('-n', '--nproc', help='Number of processes in the pool', default=4, type=int)
 
-    args = parser.parse_args(['-n', '2', 'kgym-input/syz-279-ltp-cluster-input-test.json'])
+    args = parser.parse_args()
 
     cluster = KirkCluster(args.nproc)
     cluster.main(args)
