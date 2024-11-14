@@ -3,7 +3,7 @@
         "bug-id": "08bcc3eb4d1892c93490ce2924713568b1fed364",
         "tag": "parent",
         "kgym-bucket-name": "kgym-bucket-1",
-        "kgym-storage-prefix": "jobs/\"0001cfde\"/0_kbuilder"
+        "kgym-storage-prefix": "jobs/0001cfde/0_kbuilder"
     },
     {
         "bug-id": "08bcc3eb4d1892c93490ce2924713568b1fed364",
@@ -15,7 +15,7 @@
         "bug-id": "accafa9281766c4630ea5aeaad0d83decd70406d",
         "tag": "parent",
         "kgym-bucket-name": "kgym-bucket-1",
-        "kgym-storage-prefix": "jobs/\"0001cfdf\"/0_kbuilder"
+        "kgym-storage-prefix": "jobs/0001cfdf/0_kbuilder"
     },
     {
         "bug-id": "accafa9281766c4630ea5aeaad0d83decd70406d",

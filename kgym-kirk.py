@@ -35,7 +35,8 @@ class LTPJob:
             os.path.join(self.work_dir, 'kcache.tar.zstd'),
             os.path.join(self.work_dir, 'image.tar.gz'),
             os.path.join(self.work_dir, 'disk.raw'),
-            os.path.join(self.work_dir, 'ltp-deliverable')
+            os.path.join(self.work_dir, 'ltp-deliverable'),
+            os.path.join(self.work_dir, 'mnt')
         ], stdout=self.stdout_fp, stderr=self.stdout_fp).wait()
 
     def pull(self):
@@ -228,7 +229,7 @@ if __name__ == '__main__':
     parser.add_argument('filename')
     parser.add_argument('-n', '--nproc', help='Number of processes in the pool', default=4, type=int)
 
-    args = parser.parse_args(['-n', '2', 'syz-279-ltp-cluster-input-test.json'])
+    args = parser.parse_args(['-n', '2', 'kgym-input/syz-279-ltp-cluster-input-test.json'])
 
     cluster = KirkCluster(args.nproc)
     cluster.main(args)
