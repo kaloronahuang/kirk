@@ -91,7 +91,7 @@ class LTPJob:
     def setup_vm_image(self):
         # enlarge with qemu util;
         proc = sp.Popen(
-            ['qemu-img', 'resize', self.vm_image_path, '10G'],
+            ['qemu-img', 'resize', self.vm_image_path, '+4G'],
             stdout=self.stdout_fp, stderr=self.stdout_fp
         )
         code = proc.wait()
