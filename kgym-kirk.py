@@ -224,9 +224,22 @@ class KirkCluster:
     def main(self, args):
         with open(args.filename) as fp:
             kernels = json.load(fp)
+        if args.cont:
+            kernels_to_run = []
+            for k in kernels:
+                bug_id = k['bug-id']
+                tag = k['tag']
+                verd = True
+                if tag in self.scoreboard.get(bug_id, dict()):
+                    if self.scoreboard[bug_id][tag].get('status', 'undefined') == 'success':
+                        verd = False
+                if verd:
+                    kernels_to_run.append(k)
+        else:
+            kernels_to_run = kernels
         with Pool(self.nproc) as executor:
             # [ { "bug-id": "", "tag": "", "kgym-bucket-name": "", "kgym-storage-prefix": "" } ]
-            for test_job in kernels:
+            for test_job in kernels_to_run:
                 executor.submit(
                     run_ltp, test_job['bug-id'], test_job['tag'], test_job['kgym-bucket-name'],
                     test_job['kgym-storage-prefix'], 'work_dir'
@@ -237,6 +250,7 @@ if __name__ == '__main__':
 
     parser.add_argument('filename')
     parser.add_argument('-n', '--nproc', help='Number of processes in the pool', default=4, type=int)
+    parser.add_argument('-c', '--cont', action='store_true', help='Continue, skip previously ran jobs')
 
     args = parser.parse_args()
 
