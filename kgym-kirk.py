@@ -37,7 +37,7 @@ class LTPJob:
             os.path.join(self.work_dir, 'ltp-deliverable'),
             os.path.join(self.work_dir, 'mnt'),
             os.path.join(self.work_dir, 'report.json')
-        ], stdout=self.stdout_fp, stderr=self.stdout_fp).wait()
+        ], stdin=sp.DEVNULL, stdout=self.stdout_fp, stderr=self.stdout_fp).wait()
 
     def pull(self):
         # kcache;
@@ -81,7 +81,7 @@ class LTPJob:
             '--mount', f'type=bind,src={os.path.abspath(self.kcache_checkout)},dst=/opt/ltp-build/linux',
             '--mount', f'type=bind,src={os.path.abspath(ltp_dir)},dst=/opt/ltp-build/ltp-deliverable',
             'kaloronahuang/ltp-builder'
-        ], stdout=self.stdout_fp, stderr=self.stdout_fp)
+        ], stdin=sp.DEVNULL, stdout=self.stdout_fp, stderr=self.stdout_fp)
         code = docker_proc.wait()
         if code == 0:
             self.ltp_dir = os.path.join(ltp_dir, 'opt', 'ltp')
@@ -92,39 +92,39 @@ class LTPJob:
         # enlarge with qemu util;
         proc = sp.Popen(
             ['qemu-img', 'resize', self.vm_image_path, '+4G'],
-            stdout=self.stdout_fp, stderr=self.stdout_fp
+            stdin=sp.DEVNULL, stdout=self.stdout_fp, stderr=self.stdout_fp
         )
         code = proc.wait()
         if code != 0:
             raise SystemError('Failed to resize VM image')
         # mount;
-        proc = sp.Popen(['sudo', 'losetup', '-fP', '--show', self.vm_image_path], stdout=sp.PIPE, stderr=sp.DEVNULL)
+        proc = sp.Popen(['sudo', 'losetup', '-fP', '--show', self.vm_image_path], stdin=sp.DEVNULL, stdout=sp.PIPE, stderr=sp.DEVNULL)
         out, _ = proc.communicate()
         code = proc.wait()
         if code != 0:
             raise SystemError('Failed to mount')
         dev = out.decode('utf-8').strip()
         # grow fs;
-        proc = sp.Popen(['sudo', 'growpart', dev, '1'], stdout=self.stdout_fp, stderr=self.stdout_fp)
+        proc = sp.Popen(['sudo', 'growpart', dev, '1'], stdin=sp.DEVNULL, stdout=self.stdout_fp, stderr=self.stdout_fp)
         code = proc.wait()
         if code != 0:
             raise SystemError('Failed to grow fs')
         # mount dir;
         mnt_dir = os.path.join(self.work_dir, 'mnt')
         os.makedirs(mnt_dir)
-        proc = sp.Popen(['sudo', 'mount', dev + 'p1', mnt_dir], stdout=self.stdout_fp, stderr=self.stdout_fp)
+        proc = sp.Popen(['sudo', 'mount', dev + 'p1', mnt_dir], stdin=sp.DEVNULL, stdout=self.stdout_fp, stderr=self.stdout_fp)
         code = proc.wait()
         if code != 0:
             raise SystemError('Failed to mount to directory')
         # resize2fs resize;
-        proc = sp.Popen(['sudo', 'resize2fs', dev + 'p1'], stdout=self.stdout_fp, stderr=self.stdout_fp)
+        proc = sp.Popen(['sudo', 'resize2fs', dev + 'p1'], stdin=sp.DEVNULL, stdout=self.stdout_fp, stderr=self.stdout_fp)
         code = proc.wait()
         if code != 0:
             raise SystemError('Failed to resize fs')
         # copy ltp;
         proc = sp.Popen(
             ['sudo', 'cp', '-r', self.ltp_dir, os.path.join(mnt_dir, 'opt', 'ltp')],
-            stdout=self.stdout_fp, stderr=self.stdout_fp
+            stdin=sp.DEVNULL, stdout=self.stdout_fp, stderr=self.stdout_fp
         )
         code = proc.wait()
         if code != 0:
@@ -132,18 +132,18 @@ class LTPJob:
         # make bash setting;
         proc = sp.Popen(
             f'echo "set enable-bracketed-paste off" | sudo tee -a {os.path.join(mnt_dir, "etc/inputrc")}',
-            shell=True, stdout=self.stdout_fp, stderr=self.stdout_fp
+            shell=True, stdin=sp.DEVNULL, stdout=self.stdout_fp, stderr=self.stdout_fp
         )
         code = proc.wait()
         if code != 0:
             raise SystemError('Failed to echo')
         # umount;
-        proc = sp.Popen(['sudo', 'umount', mnt_dir], stdout=self.stdout_fp, stderr=self.stdout_fp)
+        proc = sp.Popen(['sudo', 'umount', mnt_dir], stdin=sp.DEVNULL, stdout=self.stdout_fp, stderr=self.stdout_fp)
         code = proc.wait()
         if code != 0:
             raise SystemError('Failed to umount the directory')
         # umount loop;
-        proc = sp.Popen(['sudo', 'losetup', '-d', dev], stdout=self.stdout_fp, stderr=self.stdout_fp)
+        proc = sp.Popen(['sudo', 'losetup', '-d', dev], stdin=sp.DEVNULL, stdout=self.stdout_fp, stderr=self.stdout_fp)
         code = proc.wait()
         if code != 0:
             raise SystemError('Failed to umount loop device')
@@ -167,7 +167,7 @@ class LTPJob:
             '--sut', f'qemu:image={self.vm_image_path}:user=root:smp=2,sockets=2,cores=1:ram=8G',
             '--run-suite', 'syscalls',
             '--json-report', report_path
-        ], stdout=self.stdout_fp, stderr=sp.STDOUT)
+        ], stdin=sp.DEVNULL, stdout=self.stdout_fp, stderr=sp.STDOUT)
         code = kirk_proc.wait()
         if code != 0:
             self.clean()
@@ -212,8 +212,13 @@ class KirkCluster:
             json.dump(self.scoreboard, fp)
 
     def submit_ltp_task_result(self, future: Future):
-        self.scoreboard.update(future.result())
+        pdict = future.result()
+        bug_id = (list(pdict.keys()))[0]
+        tag = (list(pdict[bug_id].keys()))[0]
+        status = pdict[bug_id][tag].get('status', 'undefined')
+        self.scoreboard.update(pdict)
         self.save_scoreboard()
+        print(f'LTP task finished: {bug_id} at {tag}, {status}')
 
     def main(self, args):
         with open(args.filename) as fp:
