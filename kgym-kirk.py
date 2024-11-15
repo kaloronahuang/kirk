@@ -166,7 +166,8 @@ class LTPJob:
             '--framework', 'ltp',
             '--sut', f'qemu:image={self.vm_image_path}:user=root:smp=2,sockets=2,cores=1:ram=8G',
             '--run-suite', 'syscalls',
-            '--json-report', report_path
+            '--json-report', report_path,
+            '--tmp-dir', self.work_dir
         ], stdin=sp.DEVNULL, stdout=self.stdout_fp, stderr=sp.STDOUT)
         code = kirk_proc.wait()
         if code != 0:
@@ -181,7 +182,7 @@ class LTPJob:
 def run_ltp(bug_id: str, tag: str, bucket_name: str, kgym_storage_prefix: str, work_dir_root: str) -> dict:
     work_dir = os.path.join(work_dir_root, bug_id, tag)
     os.makedirs(work_dir, exist_ok=True)
-    stdout_fp = open(os.path.join(work_dir, 'stdout.txt'), 'w')
+    stdout_fp = open(os.path.join(work_dir, 'stdout.txt'), 'w', buffering=1)
     try:
         client = storage.Client()
         job = LTPJob(bug_id, tag, client.bucket(bucket_name), kgym_storage_prefix, work_dir_root, stdout_fp)

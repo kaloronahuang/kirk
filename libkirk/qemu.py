@@ -346,6 +346,17 @@ class QemuSUT(SUT):
                 # first character is '\n'
                 stdout = stdout[1:match.start()]
 
+                # get rid of kernel message;
+                stdout_lines = stdout.splitlines()
+                new_stdout_lines = []
+                for ln in stdout_lines:
+                    res_match = re.match(r"\[\s*[0-9]*.[0-9]*\]\[\s*\w*\]", ln)
+                    if res_match is not None:
+                        new_stdout_lines.append(ln[:res_match.span()[0]])
+                    else:
+                        new_stdout_lines.append(ln)
+                stdout = '\n'.join(new_stdout_lines)
+
                 try:
                     retcode = int(match.group("retcode"))
                 except TypeError:

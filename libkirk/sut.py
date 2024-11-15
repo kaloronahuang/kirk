@@ -252,19 +252,8 @@ class SUT(Plugin):
 
             stdout = ret["stdout"].rstrip()
 
-            # get rid of kernel message;
-            lines = stdout.splitlines()
-            picked = None
-            for ln in lines:
-                clean_ln = ln.strip()
-                if re.match(r"^\[\s*[0-9]*.[0-9]*\]\[\s*\w*\]", clean_ln) is not None:
-                    continue
-                elif len(clean_ln) > 0:
-                    picked = ln
-                    break
-
             tainted_num = len(TAINED_MSG)
-            code = int(picked.rstrip())
+            code = int(stdout.rstrip())
             bits = format(code, f"0{tainted_num}b")[::-1]
 
             messages = []
