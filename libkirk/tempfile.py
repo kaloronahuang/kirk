@@ -19,7 +19,7 @@ class TempDir:
     SYMLINK_NAME = "latest"
     FOLDER_PREFIX = "kirk."
 
-    def __init__(self, root: str = None, max_rotate: int = 5) -> None:
+    def __init__(self, root: str = None, max_rotate: int = 100) -> None:
         """
         :param root: root directory (i.e. /tmp). If None, TempDir will handle
             requests without adding any file or directory.
