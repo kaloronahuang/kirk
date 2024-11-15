@@ -217,7 +217,7 @@ class KirkCluster:
         bug_id = (list(pdict.keys()))[0]
         tag = (list(pdict[bug_id].keys()))[0]
         status = pdict[bug_id][tag].get('status', 'undefined')
-        self.scoreboard.update(pdict)
+        self.scoreboard[bug_id][tag] = pdict[bug_id][tag]
         self.save_scoreboard()
         print(f'LTP task finished: {bug_id} at {tag}, {status}')
 
