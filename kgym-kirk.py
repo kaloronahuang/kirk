@@ -209,7 +209,7 @@ class KirkCluster:
 
     def save_scoreboard(self):
         with open(self.scoreboard_path, 'w') as fp:
-            json.dump(self.scoreboard, fp)
+            json.dump(self.scoreboard, fp, indent=4)
 
     def submit_ltp_task_result(self, future: Future):
         pdict = future.result()
