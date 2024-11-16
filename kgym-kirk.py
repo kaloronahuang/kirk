@@ -217,6 +217,8 @@ class KirkCluster:
         bug_id = (list(pdict.keys()))[0]
         tag = (list(pdict[bug_id].keys()))[0]
         status = pdict[bug_id][tag].get('status', 'undefined')
+        if bug_id not in self.scoreboard:
+            self.scoreboard[bug_id] = dict()
         self.scoreboard[bug_id][tag] = pdict[bug_id][tag]
         self.save_scoreboard()
         print(f'LTP task finished: {bug_id} at {tag}, {status}')
@@ -252,7 +254,7 @@ if __name__ == '__main__':
     parser.add_argument('-n', '--nproc', help='Number of processes in the pool', default=4, type=int)
     parser.add_argument('-c', '--cont', action='store_true', help='Continue, skip previously ran jobs')
 
-    args = parser.parse_args()
+    args = parser.parse_args(['-n', '2', 'kgym-input/syz-279-ltp-cluster-input-test.json'])
 
     cluster = KirkCluster(args.nproc)
     cluster.main(args)
