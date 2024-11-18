@@ -350,7 +350,7 @@ class QemuSUT(SUT):
                 stdout_lines = stdout.splitlines()
                 new_stdout_lines = []
                 for ln in stdout_lines:
-                    res_match = re.match(r"\[\s*[0-9]*.[0-9]*\]\[\s*\w*\]", ln)
+                    res_match = re.search(r"\[\s*[0-9]*\.[0-9]*\]\[\s*\w*\]", ln)
                     if res_match is not None:
                         new_stdout_lines.append(ln[:res_match.span()[0]])
                     else:
