@@ -17,7 +17,9 @@ class LTPJob:
         kgym_storage_bucket: storage.Bucket,
         kgym_storage_prefix: str,
         work_dir: str,
-        stdout_fp
+        stdout_fp,
+        ltp_repo_url: str,
+        ltp_branch: str
     ):
         self.bug_id = bug_id
         self.tag = tag
@@ -25,6 +27,8 @@ class LTPJob:
         self.kgym_storage_prefix = kgym_storage_prefix
         self.work_dir = os.path.join(work_dir, bug_id, tag)
         self.stdout_fp = stdout_fp
+        self.ltp_repo_url = ltp_repo_url
+        self.ltp_branch = ltp_branch
 
     def clean(self):
         sp.Popen([
@@ -79,6 +83,8 @@ class LTPJob:
             'docker', 'run', '--rm',
             '--mount', f'type=bind,src={os.path.abspath(self.kcache_checkout)},dst=/opt/ltp-build/linux',
             '--mount', f'type=bind,src={os.path.abspath(ltp_dir)},dst=/opt/ltp-build/ltp-deliverable',
+            '-e', f'LTP_REPO={self.ltp_repo_url}',
+            '-e', f'LTP_BRANCH={self.ltp_branch}',
             'kaloronahuang/ltp-builder'
         ], stdin=sp.DEVNULL, stdout=self.stdout_fp, stderr=self.stdout_fp)
         code = docker_proc.wait()
@@ -178,13 +184,13 @@ class LTPJob:
         self.clean()
         return report
 
-def run_ltp(bug_id: str, tag: str, bucket_name: str, kgym_storage_prefix: str, work_dir_root: str) -> dict:
+def run_ltp(bug_id: str, tag: str, bucket_name: str, kgym_storage_prefix: str, work_dir_root: str, ltp_repo_url: str, ltp_branch: str) -> dict:
     work_dir = os.path.join(work_dir_root, bug_id, tag)
     os.makedirs(work_dir, exist_ok=True)
     stdout_fp = open(os.path.join(work_dir, 'stdout.txt'), 'w', buffering=1)
     try:
         client = storage.Client()
-        job = LTPJob(bug_id, tag, client.bucket(bucket_name), kgym_storage_prefix, work_dir_root, stdout_fp)
+        job = LTPJob(bug_id, tag, client.bucket(bucket_name), kgym_storage_prefix, work_dir_root, stdout_fp, ltp_repo_url, ltp_branch)
         return { bug_id: { tag: { 'status': 'success', 'result': job.run() } } }
     except Exception:
         from traceback import format_exc
@@ -192,9 +198,11 @@ def run_ltp(bug_id: str, tag: str, bucket_name: str, kgym_storage_prefix: str, w
 
 class KirkCluster:
 
-    def __init__(self, nproc: int):
+    def __init__(self, nproc: int, ltp_repo_url: str, ltp_branch: str):
         self.nproc = nproc
         self.work_dir = 'work_dir'
+        self.ltp_repo_url = ltp_repo_url
+        self.ltp_branch = ltp_branch
         os.makedirs(self.work_dir, exist_ok=True)
         self.scoreboard_path = os.path.join(self.work_dir, 'scoreboard.json')
         if not os.path.exists(self.scoreboard_path):
@@ -243,7 +251,7 @@ class KirkCluster:
             for test_job in kernels_to_run:
                 executor.submit(
                     run_ltp, test_job['bug-id'], test_job['tag'], test_job['kgym-bucket-name'],
-                    test_job['kgym-storage-prefix'], 'work_dir'
+                    test_job['kgym-storage-prefix'], 'work_dir', self.ltp_repo_url, self.ltp_branch
                 ).add_done_callback(self.submit_ltp_task_result)
 
 if __name__ == '__main__':
@@ -252,8 +260,10 @@ if __name__ == '__main__':
     parser.add_argument('filename')
     parser.add_argument('-n', '--nproc', help='Number of processes in the pool', default=4, type=int)
     parser.add_argument('-c', '--cont', action='store_true', help='Continue, skip previously ran jobs')
+    parser.add_argument('-r', '--repo', default='https://github.com/kaloronahuang/ltp.git', type=str, help='The LTP repo to clone')
+    parser.add_argument('-b', '--branch', default='master', help='The LTP repo branch to checkout')
 
     args = parser.parse_args()
 
-    cluster = KirkCluster(args.nproc)
+    cluster = KirkCluster(args.nproc, args.repo, args.branch)
     cluster.main(args)
