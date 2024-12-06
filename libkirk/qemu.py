@@ -393,10 +393,12 @@ class QemuSUT(SUT):
 
                     await self._write_stdin("poweroff; poweroff -f\n")
 
-                    while await self.is_running:
-                        await self._read_stdout(1024, iobuffer)
+                    async with asyncio.timeout(60):
+                        self._logger.info("Entered timeout")
+                        while await self.is_running:
+                            await self._read_stdout(1024, iobuffer)
 
-                    await self._proc.wait()
+                        await self._proc.wait()
         except asyncio.TimeoutError:
             pass
         finally:
