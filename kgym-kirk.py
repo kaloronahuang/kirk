@@ -169,7 +169,7 @@ class LTPJob:
         kirk_proc = sp.Popen([
             './kirk',
             '--framework', 'ltp',
-            '--sut', f'qemu:image={self.vm_image_path}:user=root:smp=2,sockets=2,cores=1:ram=8G',
+            '--sut', f'qemu:image={self.vm_image_path}:user=root:smp=2,sockets=1,cores=2:ram=8G',
             '--run-suite', 'syscalls',
             '--json-report', report_path,
             '--tmp-dir', self.work_dir
