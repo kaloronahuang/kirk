@@ -74,7 +74,12 @@ class LTPJob:
             self.vm_image_path = vm_image_path
         else:
             raise SystemError('Failed to untar image')
-    
+        # kernel.config
+        kernel_config_path = os.path.join(self.work_dir, 'kernel.config')
+        blob = self.kgym_storage_bucket.blob(os.path.join(self.kgym_storage_prefix, 'kernel.config'))
+        transfer_manager.download_chunks_concurrently(blob, kernel_config_path)
+        self.kernel_config_path = kernel_config_path
+
     def build_ltp(self):
         ltp_dir = os.path.join(self.work_dir, 'ltp-deliverable')
         os.makedirs(ltp_dir)
@@ -126,6 +131,14 @@ class LTPJob:
         code = proc.wait()
         if code != 0:
             raise SystemError('Failed to resize fs')
+        # copy config;
+        proc = sp.Popen(
+            ['sudo', 'cp', self.kernel_config_path, os.path.join(mnt_dir, 'boot', 'kernel.config')],
+            stdin=sp.DEVNULL, stdout=self.stdout_fp, stderr=self.stdout_fp
+        )
+        code = proc.wait()
+        if code != 0:
+            raise SystemError('Failed to copy')
         # copy ltp;
         proc = sp.Popen(
             ['sudo', 'cp', '-r', self.ltp_dir, os.path.join(mnt_dir, 'opt', 'ltp')],

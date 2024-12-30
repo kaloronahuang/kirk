@@ -53,6 +53,7 @@ class LTPFramework(Framework):
             "LTPROOT": self._root,
             "TMPDIR": "/tmp",
             "LTP_COLORIZE_OUTPUT": "1",
+            "KCONFIG_PATH": "/boot/kernel.config"
         }
 
         env = kwargs.get("env", None)
