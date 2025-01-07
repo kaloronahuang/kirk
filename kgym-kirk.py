@@ -19,7 +19,8 @@ class LTPJob:
         work_dir: str,
         stdout_fp,
         ltp_repo_url: str,
-        ltp_branch: str
+        ltp_branch: str,
+        suites: list[str]
     ):
         self.bug_id = bug_id
         self.tag = tag
@@ -29,6 +30,7 @@ class LTPJob:
         self.stdout_fp = stdout_fp
         self.ltp_repo_url = ltp_repo_url
         self.ltp_branch = ltp_branch
+        self.suites = suites
 
     def clean(self):
         sp.Popen([
@@ -183,7 +185,7 @@ class LTPJob:
             './kirk',
             '--framework', 'ltp',
             '--sut', f'qemu:image={self.vm_image_path}:user=root:smp=2,sockets=2,cores=1:ram=8G',
-            '--run-suite', 'syscalls',
+            '--run-suite', *self.suites,
             '--json-report', report_path,
             '--tmp-dir', self.work_dir
         ], stdin=sp.DEVNULL, stdout=self.stdout_fp, stderr=sp.STDOUT)
@@ -197,13 +199,13 @@ class LTPJob:
         self.clean()
         return report
 
-def run_ltp(bug_id: str, tag: str, bucket_name: str, kgym_storage_prefix: str, work_dir_root: str, ltp_repo_url: str, ltp_branch: str) -> dict:
+def run_ltp(bug_id: str, tag: str, bucket_name: str, kgym_storage_prefix: str, work_dir_root: str, ltp_repo_url: str, ltp_branch: str, suites: list[str]) -> dict:
     work_dir = os.path.join(work_dir_root, bug_id, tag)
     os.makedirs(work_dir, exist_ok=True)
     stdout_fp = open(os.path.join(work_dir, 'stdout.txt'), 'w', buffering=1)
     try:
         client = storage.Client()
-        job = LTPJob(bug_id, tag, client.bucket(bucket_name), kgym_storage_prefix, work_dir_root, stdout_fp, ltp_repo_url, ltp_branch)
+        job = LTPJob(bug_id, tag, client.bucket(bucket_name), kgym_storage_prefix, work_dir_root, stdout_fp, ltp_repo_url, ltp_branch, suites)
         return { bug_id: { tag: { 'status': 'success', 'result': job.run() } } }
     except Exception:
         from traceback import format_exc
@@ -211,7 +213,7 @@ def run_ltp(bug_id: str, tag: str, bucket_name: str, kgym_storage_prefix: str, w
 
 class KirkCluster:
 
-    def __init__(self, nproc: int, ltp_repo_url: str, ltp_branch: str):
+    def __init__(self, nproc: int, ltp_repo_url: str, ltp_branch: str, suites: list[str]):
         self.nproc = nproc
         self.work_dir = 'work_dir'
         self.ltp_repo_url = ltp_repo_url
@@ -223,6 +225,7 @@ class KirkCluster:
                 fp.write('{}')
         with open(self.scoreboard_path) as fp:
             self.scoreboard: dict = json.load(fp)
+        self.suites = suites
 
     def load_scoreboard(self):
         with open(self.scoreboard_path) as fp:
@@ -264,7 +267,8 @@ class KirkCluster:
             for test_job in kernels_to_run:
                 executor.submit(
                     run_ltp, test_job['bug-id'], test_job['tag'], test_job['kgym-bucket-name'],
-                    test_job['kgym-storage-prefix'], 'work_dir', self.ltp_repo_url, self.ltp_branch
+                    test_job['kgym-storage-prefix'], 'work_dir', self.ltp_repo_url, self.ltp_branch,
+                    self.suites
                 ).add_done_callback(self.submit_ltp_task_result)
 
 if __name__ == '__main__':
@@ -275,8 +279,9 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--cont', action='store_true', help='Continue, skip previously ran jobs')
     parser.add_argument('-r', '--repo', default='https://github.com/kaloronahuang/ltp.git', type=str, help='The LTP repo to clone')
     parser.add_argument('-b', '--branch', default='master', help='The LTP repo branch to checkout')
+    parser.add_argument('-s', '--suites', nargs='*', default=['syscalls'], help='List of suites to run')
 
     args = parser.parse_args()
 
-    cluster = KirkCluster(args.nproc, args.repo, args.branch)
+    cluster = KirkCluster(args.nproc, args.repo, args.branch, args.suites)
     cluster.main(args)
