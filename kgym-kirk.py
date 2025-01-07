@@ -278,7 +278,7 @@ if __name__ == '__main__':
     parser.add_argument('-n', '--nproc', help='Number of processes in the pool', default=4, type=int)
     parser.add_argument('-c', '--cont', action='store_true', help='Continue, skip previously ran jobs')
     parser.add_argument('-r', '--repo', default='https://github.com/kaloronahuang/ltp.git', type=str, help='The LTP repo to clone')
-    parser.add_argument('-b', '--branch', default='master', help='The LTP repo branch to checkout')
+    parser.add_argument('-b', '--branch', default='kgym/main', help='The LTP repo branch to checkout')
     parser.add_argument('-s', '--suites', nargs='*', default=['syscalls'], help='List of suites to run')
 
     args = parser.parse_args()
