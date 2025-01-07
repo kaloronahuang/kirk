@@ -274,7 +274,7 @@ class KirkCluster:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('kirk Cluster')
 
-    parser.add_argument('filename')
+    parser.add_argument('-f', '--filename')
     parser.add_argument('-n', '--nproc', help='Number of processes in the pool', default=4, type=int)
     parser.add_argument('-c', '--cont', action='store_true', help='Continue, skip previously ran jobs')
     parser.add_argument('-r', '--repo', default='https://github.com/kaloronahuang/ltp.git', type=str, help='The LTP repo to clone')
