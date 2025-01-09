@@ -62,12 +62,10 @@ class LTPJob:
         else:
             raise SystemError('Failed to untar kcache')
         # vm image;
-        vm_image_path = os.path.join(self.work_dir, 'image.tar.gz')
-        blob = self.kgym_storage_bucket.blob(os.path.join(self.kgym_storage_prefix, 'image.tar.gz'))
-        transfer_manager.download_chunks_concurrently(blob, vm_image_path)
+        src_image_path = os.path.abspath('./ltp.raw')
         vm_image_path = os.path.join(self.work_dir, 'disk.raw')
         proc = sp.Popen(
-            ['tar', 'xvf', 'image.tar.gz'],
+            ['cp', src_image_path, './disk.raw'],
             stdin=sp.DEVNULL, stdout=sp.DEVNULL, stderr=sp.DEVNULL,
             cwd=self.work_dir
         )
@@ -75,12 +73,17 @@ class LTPJob:
         if code == 0:
             self.vm_image_path = vm_image_path
         else:
-            raise SystemError('Failed to untar image')
+            raise SystemError('Failed to copy the LTP userspace image')
         # kernel.config
         kernel_config_path = os.path.join(self.work_dir, 'kernel.config')
         blob = self.kgym_storage_bucket.blob(os.path.join(self.kgym_storage_prefix, 'kernel.config'))
         transfer_manager.download_chunks_concurrently(blob, kernel_config_path)
         self.kernel_config_path = kernel_config_path
+        # kernel
+        kernel_path = os.path.join(self.work_dir, 'kernel')
+        blob = self.kgym_storage_bucket.blob(os.path.join(self.kgym_storage_prefix, 'kernel'))
+        transfer_manager.download_chunks_concurrently(blob, kernel_path)
+        self.kernel_path = kernel_path
 
     def build_ltp(self):
         ltp_dir = os.path.join(self.work_dir, 'ltp-deliverable')
@@ -101,14 +104,6 @@ class LTPJob:
             raise SystemError('Docker failed to compile LTP')
 
     def setup_vm_image(self):
-        # enlarge with qemu util;
-        proc = sp.Popen(
-            ['qemu-img', 'resize', self.vm_image_path, '+4G'],
-            stdin=sp.DEVNULL, stdout=self.stdout_fp, stderr=self.stdout_fp
-        )
-        code = proc.wait()
-        if code != 0:
-            raise SystemError('Failed to resize VM image')
         # mount;
         proc = sp.Popen(['sudo', 'losetup', '-fP', '--show', self.vm_image_path], stdin=sp.DEVNULL, stdout=sp.PIPE, stderr=sp.DEVNULL)
         out, _ = proc.communicate()
@@ -116,11 +111,6 @@ class LTPJob:
         if code != 0:
             raise SystemError('Failed to mount')
         dev = out.decode('utf-8').strip()
-        # grow fs;
-        proc = sp.Popen(['sudo', 'growpart', dev, '1'], stdin=sp.DEVNULL, stdout=self.stdout_fp, stderr=self.stdout_fp)
-        code = proc.wait()
-        if code != 0:
-            raise SystemError('Failed to grow fs')
         # mount dir;
         mnt_dir = os.path.join(self.work_dir, 'mnt')
         os.makedirs(mnt_dir)
@@ -128,14 +118,17 @@ class LTPJob:
         code = proc.wait()
         if code != 0:
             raise SystemError('Failed to mount to directory')
-        # resize2fs resize;
-        proc = sp.Popen(['sudo', 'resize2fs', dev + 'p1'], stdin=sp.DEVNULL, stdout=self.stdout_fp, stderr=self.stdout_fp)
-        code = proc.wait()
-        if code != 0:
-            raise SystemError('Failed to resize fs')
         # copy config;
         proc = sp.Popen(
             ['sudo', 'cp', self.kernel_config_path, os.path.join(mnt_dir, 'boot', 'kernel.config')],
+            stdin=sp.DEVNULL, stdout=self.stdout_fp, stderr=self.stdout_fp
+        )
+        code = proc.wait()
+        if code != 0:
+            raise SystemError('Failed to copy')
+        # copy kernel;
+        proc = sp.Popen(
+            ['sudo', 'cp', self.kernel_path, os.path.join(mnt_dir, 'boot', 'bzImage')],
             stdin=sp.DEVNULL, stdout=self.stdout_fp, stderr=self.stdout_fp
         )
         code = proc.wait()
