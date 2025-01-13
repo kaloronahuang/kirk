@@ -190,14 +190,10 @@ class Session:
         """
         Read suites and return a list of Suite objects.
         """
-        coros = []
+        suites_obj = []
         for suite in suites:
-            coros.append(self._framework.find_suite(self._sut, suite))
+            suites_obj.append(await self._framework.find_suite(self._sut, suite))
 
-        if not coros:
-            raise KirkException(f"Can't find suites: {suites}")
-
-        suites_obj = await asyncio.gather(*coros, return_exceptions=True)
         for suite in suites_obj:
             if isinstance(suite, Exception):
                 raise suite
