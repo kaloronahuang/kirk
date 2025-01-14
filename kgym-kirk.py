@@ -128,7 +128,7 @@ class LTPJob:
             raise SystemError('Failed to copy')
         # copy kernel;
         proc = sp.Popen(
-            ['sudo', 'cp', self.kernel_path, os.path.join(mnt_dir, 'boot', 'bzImage')],
+            ['sudo', 'cp', self.kernel_path, os.path.join(mnt_dir, 'vmlinuz')],
             stdin=sp.DEVNULL, stdout=self.stdout_fp, stderr=self.stdout_fp
         )
         code = proc.wait()
