@@ -7,6 +7,8 @@ from google.cloud.storage import transfer_manager
 from concurrent.futures import ProcessPoolExecutor as Pool
 from concurrent.futures import Future
 import argparse
+from time import sleep
+from random import random
 
 class LTPJob:
 
@@ -104,6 +106,8 @@ class LTPJob:
             raise SystemError('Docker failed to compile LTP')
 
     def setup_vm_image(self):
+        # kernel gets overwhelmed;
+        sleep(random() * 20)
         # mount;
         proc = sp.Popen(['sudo', 'losetup', '-fP', '--show', self.vm_image_path], stdin=sp.DEVNULL, stdout=sp.PIPE, stderr=sp.DEVNULL)
         out, _ = proc.communicate()
@@ -117,7 +121,7 @@ class LTPJob:
         proc = sp.Popen(['sudo', 'mount', dev + 'p1', mnt_dir], stdin=sp.DEVNULL, stdout=self.stdout_fp, stderr=self.stdout_fp)
         code = proc.wait()
         if code != 0:
-            raise SystemError('Failed to mount to directory')
+            raise SystemError('Failed to mount to directory', code)
         # copy config;
         proc = sp.Popen(
             ['sudo', 'cp', self.kernel_config_path, os.path.join(mnt_dir, 'boot', 'kernel.config')],
