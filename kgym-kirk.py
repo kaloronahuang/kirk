@@ -40,10 +40,11 @@ class LTPJob:
             os.path.join(self.work_dir, 'kcache'),
             os.path.join(self.work_dir, 'kcache.tar.zstd'),
             os.path.join(self.work_dir, 'image.tar.gz'),
-            os.path.join(self.work_dir, 'disk.raw'),
+            os.path.join(self.work_dir, 'disk.raw'),    
             os.path.join(self.work_dir, 'ltp-deliverable'),
             os.path.join(self.work_dir, 'mnt'),
-            os.path.join(self.work_dir, 'report.json')
+            os.path.join(self.work_dir, 'report.json'),
+            os.path.join(self.work_dir, 'kernel')
         ], stdin=sp.DEVNULL, stdout=self.stdout_fp, stderr=self.stdout_fp).wait()
 
     def pull(self):
@@ -278,7 +279,7 @@ if __name__ == '__main__':
     parser.add_argument('-b', '--branch', default='kgym/main', help='The LTP repo branch to checkout')
     parser.add_argument('-s', '--suites', nargs='*', default=['syscalls'], help='List of suites to run')
 
-    args = parser.parse_args()
+    args = parser.parse_args(['-s', 'ltp-aiodio.part1', 'ltp-aiodio.part2', 'ltp-aiodio.part3', 'ltp-aiodio.part4', 'ltp-aio-stress', '-f', './kgym-input/aiodio.json', '-n', '1'])
 
     cluster = KirkCluster(args.nproc, args.repo, args.branch, args.suites)
     cluster.main(args)

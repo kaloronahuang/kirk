@@ -252,8 +252,17 @@ class SUT(Plugin):
 
             stdout = ret["stdout"].rstrip()
 
+            code = 0
+
+            stdout_lines = stdout.split('\n')[::-1]
+            for ln in stdout_lines:
+                try:
+                    code = int(ln.strip())
+                    break
+                except:
+                    pass
+
             tainted_num = len(TAINED_MSG)
-            code = int(stdout.rstrip())
             bits = format(code, f"0{tainted_num}b")[::-1]
 
             messages = []
