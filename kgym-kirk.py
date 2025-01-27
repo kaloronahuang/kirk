@@ -93,7 +93,7 @@ class LTPJob:
         os.makedirs(ltp_dir)
 
         docker_proc = sp.Popen([
-            'docker', 'run', '--rm',
+            'sudo', 'docker', 'run', '--rm',
             '--mount', f'type=bind,src={os.path.abspath(self.kcache_checkout)},dst=/opt/ltp-build/linux',
             '--mount', f'type=bind,src={os.path.abspath(ltp_dir)},dst=/opt/ltp-build/ltp-deliverable',
             '-e', f'LTP_REPO={self.ltp_repo_url}',
