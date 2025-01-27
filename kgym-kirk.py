@@ -279,7 +279,7 @@ if __name__ == '__main__':
     parser.add_argument('-b', '--branch', default='kgym/main', help='The LTP repo branch to checkout')
     parser.add_argument('-s', '--suites', nargs='*', default=['syscalls'], help='List of suites to run')
 
-    args = parser.parse_args(['-s', 'ltp-aiodio.part1', 'ltp-aiodio.part2', 'ltp-aiodio.part3', 'ltp-aiodio.part4', 'ltp-aio-stress', '-f', './kgym-input/aiodio.json', '-n', '1'])
+    args = parser.parse_args()
 
     cluster = KirkCluster(args.nproc, args.repo, args.branch, args.suites)
     cluster.main(args)
