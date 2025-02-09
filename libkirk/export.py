@@ -73,6 +73,7 @@ class JSONExporter(Exporter):
                     status = "fail"
 
                 data_test = {
+                    "test_fullname": result.suite.name + '#' + str(test_report.test.suite_id) + '#' + test_report.test.name,
                     "test_fqn": test_report.test.name,
                     "status": status,
                     "test": {

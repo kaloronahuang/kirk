@@ -71,6 +71,7 @@ class Test:
         self._cwd = kwargs.get("cwd", None)
         self._env = kwargs.get("env", {})
         self._parallelizable = kwargs.get("parallelizable", False)
+        self._suite_id = kwargs.get("suite_id", -1)
 
     def __repr__(self) -> str:
         return \
@@ -80,6 +81,13 @@ class Test:
             f"cwd: '{self._cwd}', " \
             f"environ: '{self._env}', " \
             f"parallelizable: {self._parallelizable}"
+
+    @property
+    def suite_id(self):
+        """
+        Suite ID in the test collection
+        """
+        return self._suite_id
 
     @property
     def name(self):

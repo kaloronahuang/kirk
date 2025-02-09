@@ -148,6 +148,8 @@ class LTPFramework(Framework):
         lines = content.split('\n')
         tc_path = os.path.join(self._root, "testcases", "bin")
 
+        test_counter = 0
+
         for line in lines:
             if not line.strip() or line.strip().startswith("#"):
                 continue
@@ -202,7 +204,9 @@ class LTPFramework(Framework):
                 args=test_args,
                 cwd=tc_path,
                 env=env,
-                parallelizable=parallelizable)
+                parallelizable=parallelizable,
+                suite_id=test_counter)
+            test_counter += 1
 
             tests.append(test)
 
